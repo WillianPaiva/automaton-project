@@ -41,10 +41,10 @@ scan.h: scan.l
 	flex scan.l
 
 parse.c: parse.y scan.h
-	/opt/local/bin/bison parse.y
+	bison parse.y
 
 parse.h: parse.y
-	/opt/local/bin/bison parse.y
+	bison parse.y
 
 libautomate.a: libautomate.a(automate.o table.o ensemble.o avl.o fifo.o outils.o scan.o parse.o rationnel.o)
 
