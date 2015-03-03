@@ -374,7 +374,8 @@ Systeme systeme(Automate *automate)
 
     //pour_toute_transition(automate, action_systeme , sys);
     print_systeme(sys,i);
-
+    
+    print_ligne(resoudre_variable_arden(sys[1],1,i),i);
 
 
 
@@ -386,13 +387,17 @@ Systeme systeme(Automate *automate)
 Rationnel **resoudre_variable_arden(Rationnel **ligne, int numero_variable, int n)
 {
     Rationnel **res = ligne;
+    int t;
     if(res[numero_variable] != NULL){
-        if(res[n] != NULL){
-            res[n] = Concat(Star(res[numero_variable]),ligne[n]);
+        for(t = 0; t<n;t++){
 
-        }else{
-            res[n] = Star(res[numero_variable]);
-        }       
+        if((res[t] != NULL)&& t != numero_variable){
+            res[t] = Concat(Star(res[numero_variable]),res[t]);
+            res[numero_variable] = NULL;
+            return res;
+
+        }}
+        res[n] = Star(res[numero_variable]);
 
         res[numero_variable] = NULL;
     }
