@@ -344,7 +344,7 @@ void systeme_action(int origne,char lettre, int fin, void* data){
 
 Systeme systeme(Automate *automate)
 {
-    int i = get_max_etat(automate);
+    int i = get_max_etat(automate)+1;
     Systeme sys;
     sys = malloc(sizeof(Rationnel)*i);
     int l,t;
@@ -367,13 +367,16 @@ Systeme systeme(Automate *automate)
         int fin = get_element(it);
         printf("%d\n",fin);
 
-        sys[fin-1][i] = Epsilon(); 
+        sys[fin][i] = Epsilon(); 
 
     }
 
 
     //pour_toute_transition(automate, action_systeme , sys);
     print_systeme(sys,i);
+
+
+
 
     return sys;
 
@@ -382,7 +385,18 @@ Systeme systeme(Automate *automate)
 
 Rationnel **resoudre_variable_arden(Rationnel **ligne, int numero_variable, int n)
 {
-    A_FAIRE_RETURN(NULL);
+    Rationnel **res = ligne;
+    if(res[numero_variable] != NULL){
+        if(res[n] != NULL){
+            res[n] = Concat(Star(res[numero_variable]),ligne[n]);
+
+        }else{
+            res[n] = Star(res[numero_variable]);
+        }       
+
+        res[numero_variable] = NULL;
+    }
+    return res;
 }
 
 Rationnel **substituer_variable(Rationnel **ligne, int numero_variable, Rationnel **valeur_variable, int n)
