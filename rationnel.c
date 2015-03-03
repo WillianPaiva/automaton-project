@@ -365,7 +365,6 @@ Systeme systeme(Automate *automate)
             it = iterateur_suivant_ensemble( it )
        ){
         int fin = get_element(it);
-        printf("%d\n",fin);
 
         sys[fin][i] = Epsilon(); 
 
@@ -373,9 +372,8 @@ Systeme systeme(Automate *automate)
 
 
     //pour_toute_transition(automate, action_systeme , sys);
-    print_systeme(sys,i);
+    //
     
-    print_ligne(resoudre_variable_arden(sys[1],1,i),i);
 
 
 
@@ -406,16 +404,71 @@ Rationnel **resoudre_variable_arden(Rationnel **ligne, int numero_variable, int 
 
 Rationnel **substituer_variable(Rationnel **ligne, int numero_variable, Rationnel **valeur_variable, int n)
 {
-    A_FAIRE_RETURN(NULL);
+   Rationnel **res = ligne;
+   Rationnel *temp;
+   int t;
+   if(res[numero_variable]!= NULL){
+       temp = res[numero_variable];
+       for(t = 0; t<n; t++){
+            if(valeur_variable[t] != NULL){
+                temp = Concat(res[numero_variable],valeur_variable[t]);
+                break;
+            }
+       
+       }
+        if(res[t] != NULL){
+            res[t] = Union(res[t],temp);
+        }else{
+            res[t] = temp;
+        }
+        res[numero_variable] = NULL;
+
+        t++;
+        for(;t<=n;t++){
+            if((res[t] != NULL)&&(valeur_variable[t] != NULL)){
+                res[t] = Union(res[t],valeur_variable[t]);
+            }else if((res[t] == NULL)&&(valeur_variable[t] != NULL) ){
+                 res[t] = valeur_variable[t];
+            }
+        
+        }
+   
+   }
+   return res;
 }
 
 Systeme resoudre_systeme(Systeme systeme, int n)
 {
-    A_FAIRE_RETURN(NULL);
+    int t;
+    int counter;
+    Systeme res = systeme;
+    Rationnel **to_eliminate;
+    for(counter = 1 ; counter < n; counter ++){
+    for(t = 0 ; t < (n-counter) ; t++){
+        to_eliminate = resoudre_variable_arden(systeme[n-counter], n-counter, n);
+        res[t] = substituer_variable(res[t],n-counter,to_eliminate,n);
+          
+    }
+    }
+    for(t = 0 ; t < n ; t++){
+        res[t] =resoudre_variable_arden(res[t],t, n);
+
+          
+    }
+
+
+    return res;
+
+
 }
 
 Rationnel *Arden(Automate *automate)
 {
-    A_FAIRE_RETURN(NULL);
+    int i;
+    i = get_max_etat(automate)+1;
+    Systeme ard = resoudre_systeme(systeme(automate),i);
+    Rationnel *res = ard[0][i];
+    print_rationnel(res);
+    return res;
 }
 
