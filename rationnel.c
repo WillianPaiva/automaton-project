@@ -443,11 +443,12 @@ Systeme resoudre_systeme(Systeme systeme, int n)
     int counter;
     Systeme res = systeme;
     Rationnel **to_eliminate;
-    for(counter = 1 ; counter < n; counter ++){
-    for(t = 0 ; t < (n-counter) ; t++){
-        to_eliminate = resoudre_variable_arden(systeme[n-counter], n-counter, n);
-        res[t] = substituer_variable(res[t],n-counter,to_eliminate,n);
-          
+    for(counter = 0 ; counter < n; counter ++){
+    for(t = 0 ; t < n ; t++){
+        if(t != counter){
+        to_eliminate = resoudre_variable_arden(systeme[counter], counter, n);
+        res[t] = substituer_variable(res[t],counter,to_eliminate,n);
+        } 
     }
     }
     for(t = 0 ; t < n ; t++){
@@ -455,7 +456,6 @@ Systeme resoudre_systeme(Systeme systeme, int n)
 
           
     }
-
 
     return res;
 
@@ -467,7 +467,27 @@ Rationnel *Arden(Automate *automate)
     int i;
     i = get_max_etat(automate)+1;
     Systeme ard = resoudre_systeme(systeme(automate),i);
-    Rationnel *res = ard[0][i];
+
+    print_systeme(ard,i);
+    Rationnel *res = NULL;
+
+    Ensemble_iterateur it;
+    const Ensemble * fins = get_finaux(automate);
+    for( it = premier_iterateur_ensemble( fins );
+            ! iterateur_ensemble_est_vide( it );
+            it = iterateur_suivant_ensemble( it )
+       ){
+        int fin = get_element(it);
+            if(res == NULL){
+                res = ard[fin][i]; 
+            }else{
+                res = Union(res,ard[fin][i]);
+            }
+        
+
+    }
+
+
     print_rationnel(res);
     return res;
 }
