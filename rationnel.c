@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
-
+int Numb = 0;
 int yyparse(Rationnel **rationnel, yyscan_t scanner);
 
 Rationnel *rationnel(Noeud etiquette, char lettre, int position_min, int position_max, void *data, Rationnel *gauche, Rationnel *droit, Rationnel *pere)
@@ -134,7 +134,7 @@ void set_position_max(Rationnel* rat, int valeur)
 
 Rationnel *fils_gauche(Rationnel* rat)
 {
-    assert((get_etiquette(rat) == CONCAT) || (get_etiquette(rat) == UNION));
+    assert((get_etiquette(rat) == CONCAT) || (get_etiquette(rat) == UNION) || (get_etiquette(rat) == STAR));
     return rat->gauche;
 }
 
@@ -171,7 +171,7 @@ void print_rationnel(Rationnel* rat)
             break;
 
         case LETTRE:
-            printf("%c", get_lettre(rat));
+            printf("%c%d", get_lettre(rat),get_position_min(rat));
             break;
 
         case UNION:
@@ -279,14 +279,94 @@ int rationnel_to_dot_aux(Rationnel *rat, FILE *output, int pere, int noeud_coura
     return noeud_courant;
 }
 
+
+
+Rationnel* numeroter_rationnel_aux(Rationnel *rat){
+
+    if (rat == NULL)
+    {
+        return rat;
+    }
+
+    switch(get_etiquette(rat))
+    {
+        case EPSILON:
+            return rat;
+
+        case LETTRE:
+            rat->position_min = Numb;
+            rat->position_max = Numb;
+            Numb++;
+            return rat;
+
+        case UNION:
+            rat->position_min = numeroter_rationnel_aux(fils_gauche(rat))->position_min;
+            rat->position_max = numeroter_rationnel_aux(fils_droit(rat))->position_max;
+            printf("\n Numb = %d \n max = %d \n min = %d \n  ",Numb,rat->position_max,rat->position_min );
+
+            return rat;
+
+        case CONCAT:
+            rat->position_min = numeroter_rationnel_aux(fils_gauche(rat))->position_min;
+            rat->position_max = numeroter_rationnel_aux(fils_droit(rat))->position_max;
+            printf("\n Numb = %d \n max = %d \n min = %d \n  ",Numb,rat->position_max,rat->position_min );
+
+            return rat;
+
+        case STAR:
+            return Star(numeroter_rationnel_aux(fils_gauche(rat)));
+
+        default:
+            assert(false);
+            break;
+    }
+
+
+}
+
+
+
 void numeroter_rationnel(Rationnel *rat)
 {
-    A_FAIRE;
+
+    Numb = 1;
+    Rationnel * temp = numeroter_rationnel_aux(rat);
+    rat = temp;
+    print_rationnel(rat);
 }
+
+
 
 bool contient_mot_vide(Rationnel *rat)
 {
-    A_FAIRE_RETURN(true);
+
+    if (rat == NULL)
+    {
+        return true;
+    }
+
+    switch(get_etiquette(rat))
+    {
+        case EPSILON:
+            return true;
+
+        case LETTRE:
+            return false;
+
+        case UNION:
+            return contient_mot_vide(fils_gauche(rat)) || contient_mot_vide(fils_droit(rat));
+
+        case CONCAT:
+            return contient_mot_vide(fils_gauche(rat)) && contient_mot_vide(fils_droit(rat));
+
+        case STAR:
+            return true;
+
+        default:
+            assert(false);
+            break;
+    }
+
 }
 
 Ensemble *premier(Rationnel *rat)
