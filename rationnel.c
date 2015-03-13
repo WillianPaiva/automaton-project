@@ -171,7 +171,7 @@ void print_rationnel(Rationnel* rat)
             break;
 
         case LETTRE:
-            printf("%c%d", get_lettre(rat),get_position_min(rat));
+            printf("%c", get_lettre(rat));
             break;
 
         case UNION:
@@ -316,7 +316,7 @@ Rationnel* numeroter_rationnel_aux(Rationnel *rat){
             tm =  numeroter_rationnel_aux(fils(rat)); 
             rat->position_min =tm->position_min;
             rat->position_max = tm->position_max;
-            
+
             return rat;
 
         default:
@@ -689,9 +689,9 @@ Automate *Glushkov(Rationnel *rat)
 
     }
     if(contient_mot_vide(rat)){
-         ajouter_etat_final( temp, 0 );
+        ajouter_etat_final( temp, 0 );
 
-    
+
     }
 
     return temp;
@@ -780,19 +780,22 @@ Systeme systeme(Automate *automate)
 Rationnel **resoudre_variable_arden(Rationnel **ligne, int numero_variable, int n)
 {
     Rationnel **res = ligne;
+    Rationnel *temp; 
+    bool check = false;
     int t;
     if(res[numero_variable] != NULL){
-        for(t = 0; t<n;t++){
-
-            if((res[t] != NULL)&& t != numero_variable){
-                res[t] = Concat(Star(res[numero_variable]),res[t]);
-                res[numero_variable] = NULL;
-                return res;
-
-            }}
-        res[n] = Star(res[numero_variable]);
-
+        temp = Star(res[numero_variable]);
         res[numero_variable] = NULL;
+        for(t = 0; t<=n;t++){
+            if(res[t] != NULL){
+                res[t] = Concat(temp,res[t]);
+                check = true;
+            }
+        }
+        if(!check){
+        res[n] = temp;
+        }
+
     }
     return res;
 }
@@ -800,33 +803,39 @@ Rationnel **resoudre_variable_arden(Rationnel **ligne, int numero_variable, int 
 Rationnel **substituer_variable(Rationnel **ligne, int numero_variable, Rationnel **valeur_variable, int n)
 {
     Rationnel **res = ligne;
-    Rationnel *temp;
+    Rationnel *temp, *temp2;
     int t;
     if(res[numero_variable]!= NULL){
         temp = res[numero_variable];
-        for(t = 0; t<n; t++){
+        temp2 = res[numero_variable];
+        for(t = 0; t<=n; t++){
             if(valeur_variable[t] != NULL){
-                temp = Concat(res[numero_variable],valeur_variable[t]);
-                break;
+                temp = Concat(temp2,valeur_variable[t]);
+                /*printf("\n------------------------------------------------------------------\n");*/
+                /*printf("for t = %d \n",t);*/
+                /*print_rationnel(temp);*/
+                /*printf("\n------------------------------------------------------------------\n");*/
+
+                if(res[t] != NULL){
+                    res[t] = Union(res[t],temp);
+                }else{
+                    res[t] = temp;
+                }
+                res[numero_variable] = NULL;
+
             }
 
         }
-        if(res[t] != NULL){
-            res[t] = Union(res[t],temp);
-        }else{
-            res[t] = temp;
-        }
-        res[numero_variable] = NULL;
 
-        t++;
-        for(;t<=n;t++){
-            if((res[t] != NULL)&&(valeur_variable[t] != NULL)){
-                res[t] = Union(res[t],valeur_variable[t]);
-            }else if((res[t] == NULL)&&(valeur_variable[t] != NULL) ){
-                res[t] = valeur_variable[t];
-            }
+        /*t++;*/
+        /*for(;t<=n;t++){*/
+        /*if((res[t] != NULL)&&(valeur_variable[t] != NULL)){*/
+        /*res[t] = Union(res[t],valeur_variable[t]);*/
+        /*}else if((res[t] == NULL)&&(valeur_variable[t] != NULL) ){*/
+        /*res[t] = valeur_variable[t];*/
+        /*}*/
 
-        }
+        /*}*/
 
     }
     return res;
@@ -839,19 +848,36 @@ Systeme resoudre_systeme(Systeme systeme, int n)
     Systeme res = systeme;
     Rationnel **to_eliminate;
 
+    /*printf("\n------------------------------------------------------------------\n");*/
+    /*print_systeme(systeme,n);*/
+    /*printf("\n------------------------------------------------------------------\n");*/
+
+
+
+
     for(counter = 1 ; counter < n ; counter++){
+        /*printf("Eliminatin %d \n",n-counter);*/
         to_eliminate = resoudre_variable_arden(systeme[n-counter], n-counter, n);
         for(t = 0 ; t < n-counter; t++){
             res[t] = substituer_variable(res[t],n-counter,to_eliminate,n);
+            /*printf("\n------------------------------------------------------------------\n");*/
+            /*print_systeme(systeme,n);*/
+            /*printf("\n------------------------------------------------------------------\n");*/
+
 
 
         }
 
     }
     for(counter = 0 ; counter < n-1 ; counter++){
+        /*printf("Eliminatin %d \n",counter);*/
         to_eliminate = resoudre_variable_arden(systeme[counter], counter, n);
         for(t = 1 ; t < n; t++){
             res[n-t] = substituer_variable(res[n-t],counter,to_eliminate,n);
+            /*printf("\n------------------------------------------------------------------\n");*/
+            /*print_systeme(systeme,n);*/
+            /*printf("\n------------------------------------------------------------------\n");*/
+
 
 
         }
@@ -899,7 +925,7 @@ Rationnel *Arden(Automate *automate)
 
     }
 
-
+    print_rationnel(res);
     return res;
 }
 
