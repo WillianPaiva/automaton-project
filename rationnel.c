@@ -702,8 +702,68 @@ Automate *Glushkov(Rationnel *rat)
 
 bool meme_langage (const char *expr1, const char* expr2)
 {
-    A_FAIRE_RETURN(true);
+
+
+    Rationnel *rat1 = expression_to_rationnel(expr1);
+    Rationnel *rat2 = expression_to_rationnel(expr2);
+    const Automate  *aut1 = creer_automate_minimal(Glushkov(rat1));
+    const Automate  *aut2 = creer_automate_minimal(Glushkov(rat2));
+    bool test = iterateur_ensemble_est_vide(premier_iterateur_ensemble(creer_difference_ensemble(get_etats(aut1),get_etats(aut2)))) 
+        && iterateur_ensemble_est_vide(premier_iterateur_ensemble(creer_difference_ensemble(get_initiaux(aut1),get_initiaux(aut2))))
+        && iterateur_ensemble_est_vide(premier_iterateur_ensemble(creer_difference_ensemble(get_finaux(aut1),get_finaux(aut2))))
+        && iterateur_ensemble_est_vide(premier_iterateur_ensemble(creer_difference_ensemble(get_alphabet(aut1),get_alphabet(aut2))));
+
+
+
+    if(test){
+        Table_iterateur tit1,tit2;
+        Ensemble_iterateur eit1,eit2;
+        for(
+                tit1 = premier_iterateur_table( aut1->transitions ),
+                tit2 =  premier_iterateur_table( aut2->transitions );
+                ! iterateur_est_vide( tit1 ) &&
+                ! iterateur_est_vide( tit2 );
+                tit1 = iterateur_suivant_table( tit1 ),
+                tit2 = iterateur_suivant_table( tit2 )
+
+           ){
+            Cle * cle1 = (Cle*) get_cle( tit1 );
+            Ensemble * fins1 = (Ensemble*) get_valeur( tit1 );
+            Cle * cle2 = (Cle*) get_cle( tit2 );
+            Ensemble * fins2 = (Ensemble*) get_valeur( tit2 );
+            for(
+                    eit1 = premier_iterateur_ensemble( fins1 ),
+                    eit2 = premier_iterateur_ensemble( fins2 );
+                    ! iterateur_ensemble_est_vide( eit1 ) &&
+                    ! iterateur_ensemble_est_vide( eit2 );
+                    eit1 = iterateur_suivant_ensemble( eit1 ),
+                    eit2 = iterateur_suivant_ensemble( eit2 )
+               ){
+                int fin1 = get_element( eit1 );
+                int fin2 = get_element( eit2 );
+                test = ((fin1 == fin2) && (cle1->origine == cle2->origine) && (cle1->lettre == cle2->lettre)); 
+            }
+
+        }
+
+    }
+    if(test){
+        printf("true\n");
+    }else{
+        printf("false\n");
+    }
+
+    return test;
+
+
+
+
+
 }
+
+
+
+
 
 
 
@@ -793,7 +853,7 @@ Rationnel **resoudre_variable_arden(Rationnel **ligne, int numero_variable, int 
             }
         }
         if(!check){
-        res[n] = temp;
+            res[n] = temp;
         }
 
     }

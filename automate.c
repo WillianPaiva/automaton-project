@@ -866,6 +866,8 @@ Automate *miroir( const Automate * automate){
     }
 
     Automate * creer_automate_minimal( const Automate* automate ){
-        A_FAIRE_RETURN(NULL);   
+
+        return creer_automate_deterministe(miroir(creer_automate_deterministe(miroir(automate))));//mirro deter mirro deter;
+           
     }
 
