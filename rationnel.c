@@ -747,11 +747,6 @@ bool meme_langage (const char *expr1, const char* expr2)
         }
 
     }
-    if(test){
-        printf("true\n");
-    }else{
-        printf("false\n");
-    }
 
     return test;
 
