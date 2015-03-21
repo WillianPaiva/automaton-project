@@ -639,6 +639,12 @@ Automate *automate_accessible( const Automate * automate ){
     return res;
 }
 
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  miroir
+ *  Description:  return de inversed DFA or NFA 
+ * =====================================================================================
+ */
 Automate *miroir( const Automate * automate){
 
     Automate * mir = creer_automate(); 
@@ -669,7 +675,7 @@ Automate *miroir( const Automate * automate){
        )
     {
         ajouter_etat_final(mir,get_element(it2));
-    
+
     }
     for(
             it2 = premier_iterateur_ensemble(get_finaux(automate));
@@ -678,196 +684,202 @@ Automate *miroir( const Automate * automate){
        )
     {
         ajouter_etat_initial(mir,get_element(it2));
-    
+
     }
-    
+
 
     return mir;
 
+}
+
+void action_nombre_de_transitions(
+        int origine, char lettre, int fin, void* data
+        ){
+    int* nb = (int*) data;
+    (*nb) += 1;
+}
+
+int nombre_de_transitions( const Automate* automate ){
+    int res = 0;
+    pour_toute_transition( automate, action_nombre_de_transitions ,&res );
+    return res;
+}
+
+void action_creer_intersection_des_automates(
+        int origine, char lettre, int fin, void* data
+        ){
+    Automate * res = (Automate*) data;
+    ajouter_transition( res, origine, lettre, fin );
+}
+
+
+int est_une_transition_de_l_automate(
+        const Automate* automate,
+        int origine, char lettre, int fin
+        ){
+    return est_dans_l_ensemble( voisins( automate, origine, lettre ), fin );
+}
+
+int est_un_etat_de_l_automate( const Automate* automate, int etat ){
+    return est_dans_l_ensemble( get_etats( automate ), etat );
+}
+
+int est_un_etat_initial_de_l_automate( const Automate* automate, int etat ){
+    return est_dans_l_ensemble( get_initiaux( automate ), etat );
+}
+
+int est_un_etat_final_de_l_automate( const Automate* automate, int etat ){
+    return est_dans_l_ensemble( get_finaux( automate ), etat );
+}
+
+int est_une_lettre_de_l_automate( const Automate* automate, char lettre ){
+    return est_dans_l_ensemble( get_alphabet( automate ), lettre );
+}
+
+void print_ensemble_2( const intptr_t ens ){
+    print_ensemble( (Ensemble*) ens, NULL );
+}
+
+void print_lettre( intptr_t c ){
+    printf("%c", (char) c );
+}
+
+void print_automate( const Automate * automate ){
+    printf("- Etats : ");
+    print_ensemble( get_etats( automate ), NULL );
+    printf("\n- Initiaux : ");
+    print_ensemble( get_initiaux( automate ), NULL );
+    printf("\n- Finaux : ");
+    print_ensemble( get_finaux( automate ), NULL );
+    printf("\n- Alphabet : ");
+    print_ensemble( get_alphabet( automate ), print_lettre );
+    printf("\n- Transitions : ");
+    print_table( 
+            automate->transitions,
+            ( void (*)( const intptr_t ) ) print_cle, 
+            ( void (*)( const intptr_t ) ) print_ensemble_2,
+            ""
+            );
+    printf("\n");
+}
+
+int le_mot_est_reconnu( const Automate* automate, const char* mot ){
+    Ensemble * arrivee = delta_star( automate, get_initiaux(automate) , mot ); 
+
+    int result = 0;
+
+    Ensemble_iterateur it;
+    for(
+            it = premier_iterateur_ensemble( arrivee );
+            ! iterateur_ensemble_est_vide( it );
+            it = iterateur_suivant_ensemble( it )
+       ){
+        if( est_un_etat_final_de_l_automate( automate, get_element(it) ) ){
+            result = 1;
+            break;
+        }
+    }
+    liberer_ensemble( arrivee );
+    return result;
+}
+
+int ajouter_ensemble( 
+        const Ensemble* ens,
+        Table* ensemble_to_id, Table* id_to_ensemble, Fifo* f, 
+        Automate * aut, int next_id
+        ){
+
+    Table_iterateur it = trouver_table( ensemble_to_id, (intptr_t) ens );
+    if( iterateur_est_vide( it ) ){
+        add_table( ensemble_to_id, (intptr_t) ens, next_id );
+        add_table( id_to_ensemble, next_id, (intptr_t) ens );
+        ajouter_fifo( f, (intptr_t) ens );
+        ajouter_etat( aut, next_id );
+        return next_id+1;
+    }else{
+        return next_id;
+    }
+}
+
+Automate * creer_automate_deterministe( const Automate* automate ){
+    Automate * res = creer_automate();
+
+    Fifo* f = creer_fifo();
+    Table* ensemble_to_id = creer_table(
+            ( int(*)(const intptr_t, const intptr_t) ) comparer_ensemble, 
+            ( intptr_t (*)( const intptr_t ) ) copier_ensemble,
+            ( void(*)(intptr_t) ) liberer_ensemble
+            );
+    Table* id_to_ensemble = creer_table( NULL, NULL, NULL );
+
+    int next_id = ajouter_ensemble(
+            copier_ensemble( get_initiaux( automate ) ), 
+            ensemble_to_id, id_to_ensemble, f, res, 0
+            );
+    ajouter_etat_initial( res, 0 );
+
+    while( ! est_vide( f ) ){
+        Ensemble* e = (Ensemble*) retirer_fifo( f );
+        int id_e = get_valeur( trouver_table( ensemble_to_id, (intptr_t) e ) );
+
+        Ensemble_iterateur it_lettre;
+        for(
+                it_lettre = premier_iterateur_ensemble( get_alphabet( automate ) );
+                ! iterateur_ensemble_est_vide( it_lettre );
+                it_lettre = iterateur_suivant_ensemble( it_lettre )
+           ){
+            char lettre = (char) get_element( it_lettre );
+            Ensemble * img = delta( automate, e, lettre );
+            int id = ajouter_ensemble(
+                    img, ensemble_to_id, id_to_ensemble, f, res, next_id
+                    );
+            ajouter_transition(
+                    res, id_e, lettre, get_valeur(
+                        trouver_table( ensemble_to_id, (intptr_t) img ) 
+                        )
+                    );
+            if( next_id == id ){
+                liberer_ensemble(img);
+            }else{
+                next_id = id;
+            }
         }
 
-    void action_nombre_de_transitions(
-            int origine, char lettre, int fin, void* data
-            ){
-        int* nb = (int*) data;
-        (*nb) += 1;
-    }
-
-    int nombre_de_transitions( const Automate* automate ){
-        int res = 0;
-        pour_toute_transition( automate, action_nombre_de_transitions ,&res );
-        return res;
-    }
-
-    void action_creer_intersection_des_automates(
-            int origine, char lettre, int fin, void* data
-            ){
-        Automate * res = (Automate*) data;
-        ajouter_transition( res, origine, lettre, fin );
-    }
-
-
-    int est_une_transition_de_l_automate(
-            const Automate* automate,
-            int origine, char lettre, int fin
-            ){
-        return est_dans_l_ensemble( voisins( automate, origine, lettre ), fin );
-    }
-
-    int est_un_etat_de_l_automate( const Automate* automate, int etat ){
-        return est_dans_l_ensemble( get_etats( automate ), etat );
-    }
-
-    int est_un_etat_initial_de_l_automate( const Automate* automate, int etat ){
-        return est_dans_l_ensemble( get_initiaux( automate ), etat );
-    }
-
-    int est_un_etat_final_de_l_automate( const Automate* automate, int etat ){
-        return est_dans_l_ensemble( get_finaux( automate ), etat );
-    }
-
-    int est_une_lettre_de_l_automate( const Automate* automate, char lettre ){
-        return est_dans_l_ensemble( get_alphabet( automate ), lettre );
-    }
-
-    void print_ensemble_2( const intptr_t ens ){
-        print_ensemble( (Ensemble*) ens, NULL );
-    }
-
-    void print_lettre( intptr_t c ){
-        printf("%c", (char) c );
-    }
-
-    void print_automate( const Automate * automate ){
-        printf("- Etats : ");
-        print_ensemble( get_etats( automate ), NULL );
-        printf("\n- Initiaux : ");
-        print_ensemble( get_initiaux( automate ), NULL );
-        printf("\n- Finaux : ");
-        print_ensemble( get_finaux( automate ), NULL );
-        printf("\n- Alphabet : ");
-        print_ensemble( get_alphabet( automate ), print_lettre );
-        printf("\n- Transitions : ");
-        print_table( 
-                automate->transitions,
-                ( void (*)( const intptr_t ) ) print_cle, 
-                ( void (*)( const intptr_t ) ) print_ensemble_2,
-                ""
-                );
-        printf("\n");
-    }
-
-    int le_mot_est_reconnu( const Automate* automate, const char* mot ){
-        Ensemble * arrivee = delta_star( automate, get_initiaux(automate) , mot ); 
-
-        int result = 0;
-
-        Ensemble_iterateur it;
+        Ensemble_iterateur it_e;
         for(
-                it = premier_iterateur_ensemble( arrivee );
-                ! iterateur_ensemble_est_vide( it );
-                it = iterateur_suivant_ensemble( it )
+                it_e = premier_iterateur_ensemble( e );
+                ! iterateur_ensemble_est_vide( it_e );
+                it_e = iterateur_suivant_ensemble( it_e )
            ){
-            if( est_un_etat_final_de_l_automate( automate, get_element(it) ) ){
-                result = 1;
+            int elmt = get_element( it_e );
+            if(  est_un_etat_final_de_l_automate( automate, elmt ) ){
+                ajouter_etat_final( res, id_e );	
                 break;
             }
         }
-        liberer_ensemble( arrivee );
-        return result;
+
     }
 
-    int ajouter_ensemble( 
-            const Ensemble* ens,
-            Table* ensemble_to_id, Table* id_to_ensemble, Fifo* f, 
-            Automate * aut, int next_id
-            ){
+    pour_toute_valeur_table(
+            id_to_ensemble,
+            ( void (*)(intptr_t valeur ) ) liberer_ensemble
+            );
+    liberer_table( id_to_ensemble );
+    liberer_table( ensemble_to_id );
 
-        Table_iterateur it = trouver_table( ensemble_to_id, (intptr_t) ens );
-        if( iterateur_est_vide( it ) ){
-            add_table( ensemble_to_id, (intptr_t) ens, next_id );
-            add_table( id_to_ensemble, next_id, (intptr_t) ens );
-            ajouter_fifo( f, (intptr_t) ens );
-            ajouter_etat( aut, next_id );
-            return next_id+1;
-        }else{
-            return next_id;
-        }
-    }
+    liberer_fifo( f );
+    return res;
+}
 
-    Automate * creer_automate_deterministe( const Automate* automate ){
-        Automate * res = creer_automate();
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  creer_automate_minimal
+ *  Description:  create the minimal DFA based on the Brzozowski's algorithm
+ * =====================================================================================
+ */
+Automate * creer_automate_minimal( const Automate* automate ){
 
-        Fifo* f = creer_fifo();
-        Table* ensemble_to_id = creer_table(
-                ( int(*)(const intptr_t, const intptr_t) ) comparer_ensemble, 
-                ( intptr_t (*)( const intptr_t ) ) copier_ensemble,
-                ( void(*)(intptr_t) ) liberer_ensemble
-                );
-        Table* id_to_ensemble = creer_table( NULL, NULL, NULL );
+    return creer_automate_deterministe(miroir(creer_automate_deterministe(miroir(automate))));//mirro deter mirro deter;
 
-        int next_id = ajouter_ensemble(
-                copier_ensemble( get_initiaux( automate ) ), 
-                ensemble_to_id, id_to_ensemble, f, res, 0
-                );
-        ajouter_etat_initial( res, 0 );
-
-        while( ! est_vide( f ) ){
-            Ensemble* e = (Ensemble*) retirer_fifo( f );
-            int id_e = get_valeur( trouver_table( ensemble_to_id, (intptr_t) e ) );
-
-            Ensemble_iterateur it_lettre;
-            for(
-                    it_lettre = premier_iterateur_ensemble( get_alphabet( automate ) );
-                    ! iterateur_ensemble_est_vide( it_lettre );
-                    it_lettre = iterateur_suivant_ensemble( it_lettre )
-               ){
-                char lettre = (char) get_element( it_lettre );
-                Ensemble * img = delta( automate, e, lettre );
-                int id = ajouter_ensemble(
-                        img, ensemble_to_id, id_to_ensemble, f, res, next_id
-                        );
-                ajouter_transition(
-                        res, id_e, lettre, get_valeur(
-                            trouver_table( ensemble_to_id, (intptr_t) img ) 
-                            )
-                        );
-                if( next_id == id ){
-                    liberer_ensemble(img);
-                }else{
-                    next_id = id;
-                }
-            }
-
-            Ensemble_iterateur it_e;
-            for(
-                    it_e = premier_iterateur_ensemble( e );
-                    ! iterateur_ensemble_est_vide( it_e );
-                    it_e = iterateur_suivant_ensemble( it_e )
-               ){
-                int elmt = get_element( it_e );
-                if(  est_un_etat_final_de_l_automate( automate, elmt ) ){
-                    ajouter_etat_final( res, id_e );	
-                    break;
-                }
-            }
-
-        }
-
-        pour_toute_valeur_table(
-                id_to_ensemble,
-                ( void (*)(intptr_t valeur ) ) liberer_ensemble
-                );
-        liberer_table( id_to_ensemble );
-        liberer_table( ensemble_to_id );
-
-        liberer_fifo( f );
-        return res;
-    }
-
-    Automate * creer_automate_minimal( const Automate* automate ){
-
-        return creer_automate_deterministe(miroir(creer_automate_deterministe(miroir(automate))));//mirro deter mirro deter;
-           
-    }
+}
 
