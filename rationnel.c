@@ -281,6 +281,12 @@ int rationnel_to_dot_aux(Rationnel *rat, FILE *output, int pere, int noeud_coura
 
 
 
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  numeroter_rationnel_aux
+ *  Description:  recursive function to number the letter of a regex 
+ * =====================================================================================
+ */
 Rationnel* numeroter_rationnel_aux(Rationnel *rat){
 
     Rationnel *tm;
@@ -329,6 +335,12 @@ Rationnel* numeroter_rationnel_aux(Rationnel *rat){
 
 
 
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  numeroter_rationnel
+ *  Description:  insert the respective numbers for each letter of the regex
+ * =====================================================================================
+ */
 void numeroter_rationnel(Rationnel *rat)
 {
 
@@ -374,6 +386,12 @@ bool contient_mot_vide(Rationnel *rat)
 
 
 
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  premier
+ *  Description:  list of the first possible letters of a regex
+ * =====================================================================================
+ */
 Ensemble *premier(Rationnel *rat)
 {
     Ensemble *tmp =  creer_ensemble( NULL, NULL, NULL );
@@ -415,6 +433,14 @@ Ensemble *premier(Rationnel *rat)
 
 }
 
+
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  dernier
+ *  Description:  return a list of the possible las letters of a regex
+ * =====================================================================================
+ */
 Ensemble *dernier(Rationnel *rat)
 {
     Ensemble *tmp =  creer_ensemble( NULL, NULL, NULL );
@@ -455,6 +481,12 @@ Ensemble *dernier(Rationnel *rat)
 
 }
 
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  suivant
+ *  Description:  return a list of the following letters of a given position
+ * =====================================================================================
+ */
 Ensemble *suivant(Rationnel *rat, int position)
 {
     Ensemble *tmp =  creer_ensemble( NULL, NULL, NULL );
@@ -505,6 +537,12 @@ Ensemble *suivant(Rationnel *rat, int position)
 }
 
 
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  get_lettre_by_position
+ *  Description:  return the Rationnel of type lettre of a given position
+ * =====================================================================================
+ */
 Rationnel *get_lettre_by_position(Rationnel *rat,int n){
 
     int gmin,gmax,rmin,rmax;
@@ -565,82 +603,12 @@ Rationnel *get_lettre_by_position(Rationnel *rat,int n){
 
 
 
-
-/*Ensemble *transitions(Rationnel *rat){*/
-/*Ensemble *tmp =  creer_ensemble( NULL, NULL, NULL );*/
-/*const Ensemble *pr ;*/
-/*const Ensemble *de ;*/
-/*Ensemble_iterateur it1,it2;*/
-
-/*if (rat == NULL)*/
-/*{*/
-/*return tmp;*/
-/*}*/
-
-/*switch(get_etiquette(rat))*/
-/*{*/
-/*case EPSILON:*/
-/*return tmp;*/
-
-/*case LETTRE:*/
-/*return tmp;*/
-
-/*case UNION:*/
-/*return creer_union_ensemble(transitions(fils_gauche(rat)),transitions(fils_droit(rat)));*/
-
-/*case CONCAT:*/
-/*pr = premier(fils_droit(rat));*/
-/*de = dernier(fils_gauche(rat));*/
-
-/*for( it1 = premier_iterateur_ensemble( de );*/
-/*! iterateur_ensemble_est_vide( it1 );*/
-/*it1 = iterateur_suivant_ensemble( it1 )*/
-/*){ for( it2 = premier_iterateur_ensemble( pr );*/
-/*! iterateur_ensemble_est_vide( it2 );*/
-/*it2 = iterateur_suivant_ensemble( it2 )*/
-/*){*/
-/*int a = get_element(it1);*/
-/*int b = get_element(it2);*/
-/*ajouter_element(tmp,Concat(get_lettre_by_position(rat,a),get_lettre_by_position(rat,b)));*/
-
-/*}*/
-
-/*}*/
-
-
-/*return creer_union_ensemble(creer_union_ensemble(transitions(fils_gauche(rat)),transitions(fils_droit(rat))),tmp) ;*/
-
-
-/*case STAR:*/
-/*pr = premier(fils_gauche(rat));*/
-/*de = dernier(fils_gauche(rat));*/
-
-/*for( it1 = premier_iterateur_ensemble( de );*/
-/*! iterateur_ensemble_est_vide( it1 );*/
-/*it1 = iterateur_suivant_ensemble( it1 )*/
-/*){ for( it2 = premier_iterateur_ensemble( pr );*/
-/*! iterateur_ensemble_est_vide( it2 );*/
-/*it2 = iterateur_suivant_ensemble( it2 )*/
-/*){*/
-/*int a = get_element(it1);*/
-/*int b = get_element(it2);*/
-/*ajouter_element(tmp,Concat(get_lettre_by_position(rat,a),get_lettre_by_position(rat,b)));*/
-
-/*}*/
-
-/*}*/
-
-/*return creer_union_ensemble(transitions(fils_gauche(rat)),tmp) ;*/
-
-/*default:*/
-/*assert(false);*/
-/*break;*/
-/*}*/
-
-
-
-
-
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  Glushkov
+ *  Description: transform a regex in atomata
+ * =====================================================================================
+ */
 Automate *Glushkov(Rationnel *rat)
 {
     Automate *temp = creer_automate();
@@ -653,6 +621,9 @@ Automate *Glushkov(Rationnel *rat)
 
 
 
+    /*-----------------------------------------------------------------------------
+     *  iterates each one of the "premiers" and creat the transition from the state 0
+     *-----------------------------------------------------------------------------*/
     Ensemble_iterateur it;
     for( it = premier_iterateur_ensemble( pre );
             ! iterateur_ensemble_est_vide( it );
@@ -661,6 +632,12 @@ Automate *Glushkov(Rationnel *rat)
         int nb = get_element(it);
         ajouter_transition( temp, 0, get_lettre(get_lettre_by_position(rat,nb)), nb );
     }
+
+
+
+    /*-----------------------------------------------------------------------------
+     *  iterates each state from 1 to and create the transitions 1-->suivant
+     *-----------------------------------------------------------------------------*/
     int i;
     for(i = 1;i<=max;i++){
         Ensemble *suiv = suivant(rat,i);
@@ -679,6 +656,12 @@ Automate *Glushkov(Rationnel *rat)
         }
 
     }
+
+
+
+    /*-----------------------------------------------------------------------------
+     *  create the final states based on the list of "derniers"
+     *-----------------------------------------------------------------------------*/
     Ensemble_iterateur it3;
     for( it3 = premier_iterateur_ensemble( der );
             ! iterateur_ensemble_est_vide( it3 );
@@ -688,6 +671,11 @@ Automate *Glushkov(Rationnel *rat)
         ajouter_etat_final( temp, nb );
 
     }
+
+
+    /*-----------------------------------------------------------------------------
+     *  if the regex accept Epsilon add the state 0 as final
+     *-----------------------------------------------------------------------------*/
     if(contient_mot_vide(rat)){
         ajouter_etat_final( temp, 0 );
 
@@ -700,21 +688,50 @@ Automate *Glushkov(Rationnel *rat)
 
 }
 
+
+
+
+
+
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  meme_langage
+ *  Description:  compare 2 regex and return true if both are correspondent to the same language
+ * =====================================================================================
+ */
+
 bool meme_langage (const char *expr1, const char* expr2)
 {
 
 
+
+    /*-----------------------------------------------------------------------------
+     *  create the Rationnel 
+     *-----------------------------------------------------------------------------*/
     Rationnel *rat1 = expression_to_rationnel(expr1);
     Rationnel *rat2 = expression_to_rationnel(expr2);
+    
+    /*-----------------------------------------------------------------------------
+     *  create the automata minimal
+     *-----------------------------------------------------------------------------*/
     const Automate  *aut1 = creer_automate_minimal(Glushkov(rat1));
     const Automate  *aut2 = creer_automate_minimal(Glushkov(rat2));
+   
+    
+    /*-----------------------------------------------------------------------------
+     *  check if the list of states,initials,finals are equals and if the alphabet is equal
+     *-----------------------------------------------------------------------------*/
     bool test = iterateur_ensemble_est_vide(premier_iterateur_ensemble(creer_difference_ensemble(get_etats(aut1),get_etats(aut2)))) 
         && iterateur_ensemble_est_vide(premier_iterateur_ensemble(creer_difference_ensemble(get_initiaux(aut1),get_initiaux(aut2))))
         && iterateur_ensemble_est_vide(premier_iterateur_ensemble(creer_difference_ensemble(get_finaux(aut1),get_finaux(aut2))))
         && iterateur_ensemble_est_vide(premier_iterateur_ensemble(creer_difference_ensemble(get_alphabet(aut1),get_alphabet(aut2))));
 
 
-
+    
+    /*-----------------------------------------------------------------------------
+     *  now if the previus tests passed we check if the transitions are equal
+     *-----------------------------------------------------------------------------*/
     if(test){
         Table_iterateur tit1,tit2;
         Ensemble_iterateur eit1,eit2;
@@ -782,6 +799,17 @@ void print_systeme(Systeme systeme, int n)
     }
 }
 
+
+
+
+
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  systeme_action
+ *  Description:  populate the systeme
+ * =====================================================================================
+ */
 void systeme_action(int origne,char lettre, int fin, void* data){
     Systeme sy = (Systeme)data;
     if(sy[origne][fin] == NULL){
@@ -792,6 +820,15 @@ void systeme_action(int origne,char lettre, int fin, void* data){
     }
 }
 
+
+
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  systeme
+ *  Description:  creates the systeme for a given automata
+ * =====================================================================================
+ */
 Systeme systeme(Automate *automate)
 {
     int i = get_max_etat(automate)+1;
@@ -808,6 +845,9 @@ Systeme systeme(Automate *automate)
     }
     pour_toute_transition(automate,systeme_action,sys);
 
+    /*-----------------------------------------------------------------------------
+     *  insert Epsilon for the final states
+     *-----------------------------------------------------------------------------*/
     Ensemble_iterateur it;
     const Ensemble * fins = get_finaux(automate);
     for( it = premier_iterateur_ensemble( fins );
@@ -821,8 +861,6 @@ Systeme systeme(Automate *automate)
     }
 
 
-    //pour_toute_transition(automate, action_systeme , sys);
-    //
 
 
 
@@ -832,6 +870,12 @@ Systeme systeme(Automate *automate)
 }
 
 
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  resoudre_variable_the_arden
+ *  Description:  aply arden's theoreme to the given line of a systeme 
+ * =====================================================================================
+ */
 Rationnel **resoudre_variable_arden(Rationnel **ligne, int numero_variable, int n)
 {
     Rationnel **res = ligne;
@@ -855,6 +899,15 @@ Rationnel **resoudre_variable_arden(Rationnel **ligne, int numero_variable, int 
     return res;
 }
 
+
+
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  substituer_variable
+ *  Description:  make the proper substitution of a variable on a given line
+ * =====================================================================================
+ */
 Rationnel **substituer_variable(Rationnel **ligne, int numero_variable, Rationnel **valeur_variable, int n)
 {
     Rationnel **res = ligne;
@@ -866,11 +919,6 @@ Rationnel **substituer_variable(Rationnel **ligne, int numero_variable, Rationne
         for(t = 0; t<=n; t++){
             if(valeur_variable[t] != NULL){
                 temp = Concat(temp2,valeur_variable[t]);
-                /*printf("\n------------------------------------------------------------------\n");*/
-                /*printf("for t = %d \n",t);*/
-                /*print_rationnel(temp);*/
-                /*printf("\n------------------------------------------------------------------\n");*/
-
                 if(res[t] != NULL){
                     res[t] = Union(res[t],temp);
                 }else{
@@ -882,20 +930,17 @@ Rationnel **substituer_variable(Rationnel **ligne, int numero_variable, Rationne
 
         }
 
-        /*t++;*/
-        /*for(;t<=n;t++){*/
-        /*if((res[t] != NULL)&&(valeur_variable[t] != NULL)){*/
-        /*res[t] = Union(res[t],valeur_variable[t]);*/
-        /*}else if((res[t] == NULL)&&(valeur_variable[t] != NULL) ){*/
-        /*res[t] = valeur_variable[t];*/
-        /*}*/
-
-        /*}*/
-
     }
     return res;
 }
 
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  resoudre_systeme
+ *  Description:  aply arden's theoreme and make the variable's substitution to eliminate then all
+ *  and return a systeme with all lines solved 
+ * =====================================================================================
+ */
 Systeme resoudre_systeme(Systeme systeme, int n)
 {
     int t;
@@ -903,35 +948,29 @@ Systeme resoudre_systeme(Systeme systeme, int n)
     Systeme res = systeme;
     Rationnel **to_eliminate;
 
-    /*printf("\n------------------------------------------------------------------\n");*/
-    /*print_systeme(systeme,n);*/
-    /*printf("\n------------------------------------------------------------------\n");*/
 
 
 
-
+    /*-----------------------------------------------------------------------------
+     *  solve the lines from botton to up
+     *-----------------------------------------------------------------------------*/
     for(counter = 1 ; counter < n ; counter++){
-        /*printf("Eliminatin %d \n",n-counter);*/
         to_eliminate = resoudre_variable_arden(systeme[n-counter], n-counter, n);
         for(t = 0 ; t < n-counter; t++){
             res[t] = substituer_variable(res[t],n-counter,to_eliminate,n);
-            /*printf("\n------------------------------------------------------------------\n");*/
-            /*print_systeme(systeme,n);*/
-            /*printf("\n------------------------------------------------------------------\n");*/
 
 
 
         }
 
     }
+    /*-----------------------------------------------------------------------------
+     *  solve the lines from up to botton
+     *-----------------------------------------------------------------------------*/
     for(counter = 0 ; counter < n-1 ; counter++){
-        /*printf("Eliminatin %d \n",counter);*/
         to_eliminate = resoudre_variable_arden(systeme[counter], counter, n);
         for(t = 1 ; t < n; t++){
             res[n-t] = substituer_variable(res[n-t],counter,to_eliminate,n);
-            /*printf("\n------------------------------------------------------------------\n");*/
-            /*print_systeme(systeme,n);*/
-            /*printf("\n------------------------------------------------------------------\n");*/
 
 
 
@@ -942,7 +981,7 @@ Systeme resoudre_systeme(Systeme systeme, int n)
 
 
 
-
+    
     res[0] =resoudre_variable_arden(res[0],0, n);
 
 
@@ -952,6 +991,13 @@ Systeme resoudre_systeme(Systeme systeme, int n)
 
 }
 
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  Arden
+ *  Description:  creates a systeme from one automata and aply arden's theoreme 
+ *  return a regex from the given automata
+ * =====================================================================================
+ */
 Rationnel *Arden(Automate *automate)
 {
     int i;
@@ -980,7 +1026,6 @@ Rationnel *Arden(Automate *automate)
 
     }
 
-    print_rationnel(res);
     return res;
 }
 
